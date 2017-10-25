@@ -1,6 +1,5 @@
-================================
-GeoStax SDE (Spatial Data Engine)
-================================
+
+#GeoStax SDE (Spatial Data Engine)
 
 GeoStax SDE is a data engine for geospatial data. 
 
