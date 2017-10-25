@@ -1,0 +1,16 @@
+Oracle7: Implementation-Version: 12.1.0.2.0
+
+二.手动安装
+
+命令如下：（首先电脑安装maven，并配置maven环境 ,windows -cmd）
+mvn install:install-file -Dfile=<jdbc_path>\ojdbc7.jar -DgroupId=com.oracle -DartifactId=ojdbc7 -Dversion=12.1.0.2.0 -Dpackaging=jar
+回车成功
+
+E:\soft\devsoft\jar\ojdbc6-11.2.0.3.jar:这是我的此jar的绝对路径
+然后在pom文件中引入
+     <dependency>
+		<groupId>com.oracle</groupId>
+		<artifactId>ojdbc7</artifactId>
+		<version>12.1.0.2.0</version>
+     </dependency>
+保存就好了。
