@@ -208,7 +208,6 @@
 	</build>
 	<modules>
 		<module>gx-sde-core</module>
-		<module>gx-sde-s2</module>
 		<module>gx-sde-cassandra</module>
 		<module>gx-sde-shapefile</module>
 		<module>gx-sde-postgis</module>
