@@ -57,7 +57,7 @@
 				<artifactId>gx-sde-shapefile</artifactId>
 				<version>${gx.sde.version}</version>
 			</dependency>
-			
+
 
 			<!-- Geotools -->
 			<dependency>
@@ -211,6 +211,9 @@
 		<module>gx-sde-s2</module>
 		<module>gx-sde-cassandra</module>
 		<module>gx-sde-shapefile</module>
-		<module>gx-sde-jdbc</module>
+		<module>gx-sde-postgis</module>
+		<module>gx-sde-oracle</module>
+		<module>gx-sde-mysql</module>
+		<module>gx-sde-sqlserver</module>
 	</modules>
 </project>
