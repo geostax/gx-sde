@@ -100,7 +100,7 @@ public class S2Index {
 		System.out.println(covering.size());
 	}
 
-	private S2Polygon makePolygon(String str) {
+	public S2Polygon makePolygon(String str) {
 		List<S2Loop> loops = Lists.newArrayList();
 
 		for (String token : Splitter.on(';').omitEmptyStrings().split(str)) {
@@ -112,7 +112,7 @@ public class S2Index {
 		return new S2Polygon(loops);
 	}
 
-	private void parseVertices(String str, List<S2Point> vertices) {
+	public void parseVertices(String str, List<S2Point> vertices) {
 		if (str == null) {
 			return;
 		}

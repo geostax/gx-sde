@@ -214,5 +214,9 @@
 		<module>gx-sde-oracle</module>
 		<module>gx-sde-mysql</module>
 		<module>gx-sde-sqlserver</module>
+		<module>gx-sde-kafa</module>
+		<module>gx-sde-json</module>
+		<module>gx-sde-xml</module>
+		<module>gx-sde-elasticsearch</module>
 	</modules>
 </project>
