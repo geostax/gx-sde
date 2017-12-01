@@ -62,6 +62,7 @@ import com.vividsolutions.jts.io.WKBWriter;
 
 public class CassandraIngestTest {
 
+	public final static int CELL_LEVEL = 5;
 	public final static Map<Class, DataType> TYPE_TO_CA_MAP = new HashMap<Class, DataType>() {
 		{
 			put(Integer.class, DataType.cint());
@@ -94,6 +95,7 @@ public class CassandraIngestTest {
 	private S2Index s2index;
 	private List<SimpleFeature> result;
 	private Set<String> idset;
+	private List<String> idset2;
 	private ExecutorService executorService;
 
 	public CassandraIngestTest() {
@@ -101,11 +103,13 @@ public class CassandraIngestTest {
 		s2index = new S2Index();
 		result = Collections.synchronizedList(new ArrayList<>());
 		executorService = Executors.newFixedThreadPool(5);
-		idset=Collections.synchronizedSet(new TreeSet<String>());
+		idset = Collections.synchronizedSet(new TreeSet<String>());
+		idset2 = Collections.synchronizedList(new ArrayList<>());
 	}
 
 	public static void main(String[] args) throws Exception {
-		new CassandraIngestTest().queryData();
+		new CassandraIngestTest().ingestData();
+		//new CassandraIngestTest().queryData("gis_osm_buildings_a_free_1_l" + CELL_LEVEL);
 	}
 
 	public void ingestData() throws Exception {
@@ -114,13 +118,13 @@ public class CassandraIngestTest {
 		String datetime = "2016121300";
 		ShapefileDataStoreFactory datasoreFactory = new ShapefileDataStoreFactory();
 		ShapefileDataStore sds = (ShapefileDataStore) datasoreFactory
-				.createDataStore(new File("E:\\Data\\OSM\\Japan\\japan-161213-free.shp\\gis.osm_buildings_a_free_1.shp")
+				.createDataStore(new File("E:\\Data\\OSM\\Japan\\japan-161213-free.shp\\gis.osm_pois_free_1.shp")
 						.toURI().toURL());
 		sds.setCharset(Charset.forName("GBK"));
 		SimpleFeatureSource featureSource = sds.getFeatureSource();
 		SimpleFeatureType featureType = featureSource.getFeatures().getSchema();
 		session.execute("use japan;");
-		createSchema(session, featureType);
+		createSchema(session, featureType, "L" + CELL_LEVEL);
 		System.out.println("Create Schema!");
 		SimpleFeatureCollection featureCollection = featureSource.getFeatures();
 		FeatureIterator<SimpleFeature> features = featureCollection.features();
@@ -130,8 +134,9 @@ public class CassandraIngestTest {
 		Date date = formatter.parse(datetime);
 
 		BatchStatement bs = new BatchStatement();
-		String table_name = featureType.getName().toString().replace(".", "_");
+		String table_name = featureType.getName().toString().replace(".", "_") + "_L" + CELL_LEVEL;
 		Geometry geom;
+		int sum = 0;
 		while (features.hasNext()) {
 			SimpleFeature feature = features.next();
 			if (featureType.getGeometryDescriptor().getType().getName().toString().equals("MultiPolygon")) {
@@ -148,11 +153,14 @@ public class CassandraIngestTest {
 
 			ByteBuffer buf_geom = ByteBuffer.wrap(writer.write(geom));
 
-			List<S2CellId> ids = s2index.index(9, geom);
+			List<S2CellId> ids = s2index.index(CELL_LEVEL, geom);
 			if (ids.size() == 0 || ids.size() > 1000) {
 				System.out.println(feature.getAttribute("osm_id"));
 				continue;
 			}
+
+			if (ids.size() > 1)
+				sum++;
 
 			List<AttributeDescriptor> attrDes = featureType.getAttributeDescriptors();
 			String cols = "";
@@ -170,6 +178,7 @@ public class CassandraIngestTest {
 				values.add(id.toToken());
 				values.add(date);
 				values.add(fid);
+				values.add(ids.size());
 
 				for (AttributeDescriptor attr : attrDes) {
 					if (attr instanceof GeometryDescriptor) {
@@ -193,8 +202,8 @@ public class CassandraIngestTest {
 				cols += col_items.get(col_items.size() - 1);
 				params += "?";
 
-				SimpleStatement s = new SimpleStatement("INSERT INTO " + table_name + " (cell_id,time,fid, " + cols
-						+ ") values (?,?,?," + params + ");", values.toArray());
+				SimpleStatement s = new SimpleStatement("INSERT INTO " + table_name + " (cell_id,time,fid,partition,"
+						+ cols + ") values (?,?,?,?," + params + ");", values.toArray());
 				// System.out.println(s);
 				bs.add(s);
 				count++;
@@ -226,55 +235,61 @@ public class CassandraIngestTest {
 
 		session.execute(bs);
 
+		System.out.println(sum);
 		long t0 = System.currentTimeMillis();
 		System.out.println("Finish!");
 
 	}
 
-	public void queryData() {
+	public void queryData(String schema_name) {
 
 		long t0 = System.currentTimeMillis();
-		//double lat0 = 36.958;
-		//double lon0 = 138.217;
-		//double lat1 = 34.252;
-		//double lon1 = 140.985;
-		
-		//double lat0 = 38;
-		//double lon0 = 138;
-		//double lat1 = 34.5;
-		//double lon1 = 141.2;
+		// double lat0 = 36.958;
+		// double lon0 = 138.217;
+		// double lat1 = 34.252;
+		// double lon1 = 140.985;
 
-		double lat0 = 33.4;
-		double lon0 = 135;
-		double lat1 = 40.4;
-		double lon1 = 142.0;
+		// double lat0 = 38;
+		// double lon0 = 138;
+		// double lat1 = 34.5;
+		// double lon1 = 141.2;
 
-		
+		// double lat0 = 33.4;
+		// double lon0 = 135;
+		// double lat1 = 40.4;
+		// double lon1 = 142.0;
+
+		double lat0 = 29;
+		double lon0 = 127;
+		double lat1 = 46;
+		double lon1 = 148.0;
+
 		String polygon = lat0 + ":" + lon0 + "," + lat0 + ":" + lon1 + "," + lat1 + ":" + lon1 + "," + lat1 + ":" + lon0
 				+ ";";
 		List<String> quad_ids = new ArrayList<>();
 
 		S2RegionCoverer coverer = new S2RegionCoverer();
 		S2Polygon a = s2index.makePolygon(polygon);
-		coverer.setMinLevel(9);
-		coverer.setMaxLevel(9);
+		coverer.setMinLevel(CELL_LEVEL);
+		coverer.setMaxLevel(CELL_LEVEL);
 		ArrayList<S2CellId> covering = new ArrayList<>();
 		coverer.getCovering(a, covering);
 		System.out.println(covering.size());
 		Session session = cluster.connect();
 		session.execute("use japan;");
 
-		SimpleFeatureType sft = getSchema(new NameImpl("gis_osm_buildings_a_free_1"),
-				cluster.getMetadata().getKeyspace("japan").getTable("gis_osm_buildings_a_free_1"));
+		SimpleFeatureType sft = getSchema(new NameImpl(schema_name),
+				cluster.getMetadata().getKeyspace("japan").getTable(schema_name));
+		// System.out.println(sft);
 		SimpleFeatureBuilder builder = new SimpleFeatureBuilder(sft);
 
 		ArrayList<SimpleFeature> features = new ArrayList<>();
-		Envelope bbox = new ReferencedEnvelope(lon0, lon1,lat0,lat1, DefaultGeographicCRS.WGS84);
+		Envelope bbox = new ReferencedEnvelope(lon0, lon1, lat0, lat1, DefaultGeographicCRS.WGS84);
 		for (S2CellId id : covering) {
 
-			Statement statement = new SimpleStatement("select * from gis_osm_buildings_a_free_1 where cell_id=?;",
+			Statement statement = new SimpleStatement("select * from " + schema_name + " where cell_id=?;",
 					id.toToken());
-			executorService.submit(new QueryProcess(session, statement, builder,bbox));
+			executorService.submit(new QueryProcess(session, statement, builder, bbox));
 		}
 		executorService.shutdown();
 
@@ -305,11 +320,12 @@ public class CassandraIngestTest {
 		SimpleFeatureBuilder builder;
 		WKBReader reader = new WKBReader();
 		Envelope bbox;
-		public QueryProcess(Session session, Statement statement, SimpleFeatureBuilder builder,Envelope bbox) {
+
+		public QueryProcess(Session session, Statement statement, SimpleFeatureBuilder builder, Envelope bbox) {
 			this.session = session;
 			this.statement = statement;
 			this.builder = builder;
-			this.bbox=bbox;
+			this.bbox = bbox;
 		}
 
 		@Override
@@ -318,7 +334,14 @@ public class CassandraIngestTest {
 			ResultSet rs = session.execute(statement);
 			for (Row row : rs) {
 				buffer = row.getBytes("the_geom");
-				String fid = row.getString("fid");
+				String fid = row.getString("osm_id");
+				int partition = row.getInt("partition");
+				if (idset2.contains(fid))
+					continue;
+				if (partition > 1) {
+					idset2.add(fid);
+				}
+
 				try {
 					geometry = reader.read(buffer.array());
 					if (!bbox.intersects(geometry.getEnvelopeInternal())) {
@@ -338,7 +361,7 @@ public class CassandraIngestTest {
 
 	}
 
-	private void createSchema(Session session, SimpleFeatureType featureType) throws IOException {
+	private void createSchema(Session session, SimpleFeatureType featureType, String suffix) throws IOException {
 
 		List<AttributeDescriptor> attrDes = featureType.getAttributeDescriptors();
 		List<String> col_items = new ArrayList<>();
@@ -352,9 +375,10 @@ public class CassandraIngestTest {
 			cols += col_items.get(i) + ",";
 		}
 		cols += col_items.get(col_items.size() - 1);
-		String colCreate = "(cell_id text,time timestamp,fid text," + cols + ", PRIMARY KEY (cell_id,time,fid));";
-		String stmt = "CREATE TABLE IF NOT EXISTS " + featureType.getName().toString().replace(".", "_") + " "
-				+ colCreate;
+		String colCreate = "(cell_id text,time timestamp,fid text,partition int," + cols
+				+ ", PRIMARY KEY (cell_id,time,fid));";
+		String stmt = "CREATE TABLE IF NOT EXISTS " + featureType.getName().toString().replace(".", "_") + "_" + suffix
+				+ " " + colCreate;
 		session.execute(stmt);
 
 	}

@@ -1,1 +1,1 @@
-com.geostax.sde.postgis.ShapefileDataStoreFactory
+com.geostax.sde.shapefile.ShapefileDataStoreFactory

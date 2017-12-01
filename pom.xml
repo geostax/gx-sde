@@ -179,7 +179,7 @@
 
 	<properties>
 		<gx.sde.version>1.0-SNAPSHOT</gx.sde.version>
-		<gt.version>17-SNAPSHOT</gt.version>
+		<gt.version>18.0</gt.version>
 		<postgresql.jdbc.version>9.4.1211</postgresql.jdbc.version>
 		<mysql.jdbc.version>5.1.17</mysql.jdbc.version>
 		<jt.version>1.4.0</jt.version>
@@ -218,5 +218,6 @@
 		<module>gx-sde-json</module>
 		<module>gx-sde-xml</module>
 		<module>gx-sde-elasticsearch</module>
+		<module>gx-sde-csv</module>
 	</modules>
 </project>
