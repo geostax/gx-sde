@@ -62,7 +62,7 @@ import com.vividsolutions.jts.io.WKBWriter;
 
 public class CassandraIngestTest {
 
-	public final static int CELL_LEVEL = 5;
+	public final static int CELL_LEVEL =10;
 	public final static Map<Class, DataType> TYPE_TO_CA_MAP = new HashMap<Class, DataType>() {
 		{
 			put(Integer.class, DataType.cint());
@@ -108,8 +108,8 @@ public class CassandraIngestTest {
 	}
 
 	public static void main(String[] args) throws Exception {
-		new CassandraIngestTest().ingestData();
-		//new CassandraIngestTest().queryData("gis_osm_buildings_a_free_1_l" + CELL_LEVEL);
+		//new CassandraIngestTest().ingestData();
+		new CassandraIngestTest().queryData("gis_osm_pois_free_1_2017120417");
 	}
 
 	public void ingestData() throws Exception {
@@ -139,13 +139,13 @@ public class CassandraIngestTest {
 		int sum = 0;
 		while (features.hasNext()) {
 			SimpleFeature feature = features.next();
-			if (featureType.getGeometryDescriptor().getType().getName().toString().equals("MultiPolygon")) {
+
+			if (featureType.getGeometryDescriptor().getType().getBinding().toString().equals("MultiPolygon")) {
 				geom = (MultiPolygon) feature.getDefaultGeometry();
-			} else if (featureType.getGeometryDescriptor().getType().getName().toString().equals("MultiLineString")) {
+			} else if (featureType.getGeometryDescriptor().getType().getBinding().toString().equals("MultiLineString")) {
 				geom = (MultiLineString) feature.getDefaultGeometry();
-			} else if (featureType.getGeometryDescriptor().getType().getName().toString().equals("Polygon")) {
+			} else if (featureType.getGeometryDescriptor().getType().getBinding().toString().equals("Polygon")) {
 				geom = (Polygon) feature.getDefaultGeometry();
-				System.out.println(geom);
 
 			} else {
 				geom = (Point) feature.getDefaultGeometry();
@@ -254,15 +254,15 @@ public class CassandraIngestTest {
 		// double lat1 = 34.5;
 		// double lon1 = 141.2;
 
-		// double lat0 = 33.4;
-		// double lon0 = 135;
-		// double lat1 = 40.4;
-		// double lon1 = 142.0;
+		 double lat0 = 33.4;
+		 double lon0 = 135;
+		 double lat1 = 40.4;
+		 double lon1 = 142.0;
 
-		double lat0 = 29;
-		double lon0 = 127;
-		double lat1 = 46;
-		double lon1 = 148.0;
+		//double lat0 = 29;
+		//double lon0 = 127;
+		//double lat1 = 46;
+		//double lon1 = 148.0;
 
 		String polygon = lat0 + ":" + lon0 + "," + lat0 + ":" + lon1 + "," + lat1 + ":" + lon1 + "," + lat1 + ":" + lon0
 				+ ";";

@@ -57,6 +57,7 @@ public class CassandraFeatureSource extends ContentFeatureSource {
 	
 	@Override
 	protected FeatureReader<SimpleFeatureType, SimpleFeature> getReaderInternal(Query query) throws IOException {
+		session=CassandraConnector.getSession();
 		CassandraFeatureReader reader = new CassandraFeatureReader(session,getSchema(),query);
 		return reader;
 	}

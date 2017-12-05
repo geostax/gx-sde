@@ -111,8 +111,7 @@ public class CassandraDataStoreTest {
 				SimpleFeature feature = iterator.next();
 				// System.out.println(feature.getDefaultGeometry());
 				Geometry geometry = (Geometry) feature.getDefaultGeometry();
-				// System.out.println(feature.getID() + " default geometry "
-				// +geometry);
+				System.out.println(feature.getID() + " default geometry " +geometry);
 			}
 		} catch (Throwable t) {
 			iterator.close();

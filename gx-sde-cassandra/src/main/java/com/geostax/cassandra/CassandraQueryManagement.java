@@ -34,36 +34,35 @@ import com.vividsolutions.jts.io.WKBReader;
 public class CassandraQueryManagement {
 
 	public final static int CELL_LEVEL = 10;
-	private Cluster cluster = null;
 	private S2Index s2index;
 	private List<SimpleFeature> result;
-	private Set<String> idset;
-	private List<String> idset2;
 	private ExecutorService executorService;
 	private Session session;
 	private SimpleFeatureType sft;
 	Query query;
-	
+
 	public CassandraQueryManagement(Session session, SimpleFeatureType sft, Query query) {
-		this.session=session;
-		this.sft=sft;
-		this.query=query;
-		s2index=new S2Index();
-		
-		result = Collections.synchronizedList(new ArrayList<>());
-		executorService = Executors.newFixedThreadPool(5);
-		idset = Collections.synchronizedSet(new TreeSet<String>());
-		idset2 = Collections.synchronizedList(new ArrayList<>());
+		this.session = session;
+		this.sft = sft;
+		this.query = query;
+		this.s2index = new S2Index();
+
+		this.result = Collections.synchronizedList(new ArrayList<>());
+		this.executorService = Executors.newFixedThreadPool(5);
 	}
-	
-			
-	public void queryData(String schema_name,double lat0,double lon0,double lat1,double lon1) {
+
+	public CassandraQueryManagement() {
+		// TODO Auto-generated constructor stub
+	}
+
+	public List<SimpleFeature> queryData(String schema_name, Envelope bbox) {
+		double lat0 = bbox.getMinY();
+		double lon0 = bbox.getMinX();
+		double lat1 = bbox.getMaxY();
+		double lon1 = bbox.getMaxX();
 		String polygon = lat0 + ":" + lon0 + "," + lat0 + ":" + lon1 + "," + lat1 + ":" + lon1 + "," + lat1 + ":" + lon0
 				+ ";";
 		System.out.println(schema_name);
-		System.out.println(polygon);
-		List<String> quad_ids = new ArrayList<>();
-
 		S2RegionCoverer coverer = new S2RegionCoverer();
 		S2Polygon a = s2index.makePolygon(polygon);
 		coverer.setMinLevel(CELL_LEVEL);
@@ -74,15 +73,13 @@ public class CassandraQueryManagement {
 
 		// System.out.println(sft);
 		SimpleFeatureBuilder builder = new SimpleFeatureBuilder(sft);
-
-		ArrayList<SimpleFeature> features = new ArrayList<>();
-		Envelope bbox = new ReferencedEnvelope(lon0, lon1, lat0, lat1, DefaultGeographicCRS.WGS84);
+		
+		// session.execute("use japan;");
 		for (S2CellId id : covering) {
-
-			Statement statement = new SimpleStatement("select * from " + schema_name + " where cell_id=?;",
-					id.toToken());
+			Statement statement = new SimpleStatement("select * from " + schema_name + " where block=?;", id.toToken());
 			executorService.submit(new QueryProcess(session, statement, builder, bbox));
 		}
+
 		executorService.shutdown();
 
 		while (true) {
@@ -98,8 +95,51 @@ public class CassandraQueryManagement {
 
 		}
 		System.out.println(result.size());
-		System.out.println(idset.size());
+		return result;
 	}
+	
+	public void queryData(String schema_name, double lat0, double lon0, double lat1, double lon1) {
+		lat0 = 34;
+		lon0 = 135;
+		lat1 = 35;
+		lon1 = 137.0;
+		String polygon = lat0 + ":" + lon0 + "," + lat0 + ":" + lon1 + "," + lat1 + ":" + lon1 + "," + lat1 + ":" + lon0
+				+ ";";
+		System.out.println(schema_name);
+		S2RegionCoverer coverer = new S2RegionCoverer();
+		S2Polygon a = s2index.makePolygon(polygon);
+		coverer.setMinLevel(CELL_LEVEL);
+		coverer.setMaxLevel(CELL_LEVEL);
+		ArrayList<S2CellId> covering = new ArrayList<>();
+		coverer.getCovering(a, covering);
+		System.out.println(covering.size());
+
+		// System.out.println(sft);
+		SimpleFeatureBuilder builder = new SimpleFeatureBuilder(sft);
+		Envelope bbox = new ReferencedEnvelope(lon0, lon1, lat0, lat1, DefaultGeographicCRS.WGS84);
+		// session.execute("use japan;");
+		for (S2CellId id : covering) {
+			Statement statement = new SimpleStatement("select * from " + schema_name + " where block=?;", id.toToken());
+			executorService.submit(new QueryProcess(session, statement, builder, bbox));
+		}
+
+		executorService.shutdown();
+
+		while (true) {
+			if (executorService.isTerminated()) {
+				System.out.println("所有的子线程都结束了！");
+				break;
+			}
+			try {
+				Thread.sleep(1000);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+		}
+		System.out.println(result.size());
+	}
+
 	public void queryData(String schema_name) {
 
 		long t0 = System.currentTimeMillis();
@@ -134,7 +174,6 @@ public class CassandraQueryManagement {
 		ArrayList<S2CellId> covering = new ArrayList<>();
 		coverer.getCovering(a, covering);
 		System.out.println(covering.size());
-		Session session = cluster.connect();
 		session.execute("use japan;");
 
 		// System.out.println(sft);
@@ -164,7 +203,42 @@ public class CassandraQueryManagement {
 		}
 		System.out.println((System.currentTimeMillis() - t0) + " ms");
 		System.out.println(result.size());
-		System.out.println(idset.size());
+	}
+
+	public void queryData() {
+		CassandraConnector.init("192.168.210.110");
+		Session session = CassandraConnector.getSession();
+		double lat0 = 34;
+		double lon0 = 135;
+		double lat1 = 35;
+		double lon1 = 137.0;
+
+		String polygon = lat0 + ":" + lon0 + "," + lat0 + ":" + lon1 + "," + lat1 + ":" + lon1 + "," + lat1 + ":" + lon0
+				+ ";";
+		List<String> quad_ids = new ArrayList<>();
+		S2Index s2index = new S2Index();
+		S2RegionCoverer coverer = new S2RegionCoverer();
+		S2Polygon a = s2index.makePolygon(polygon);
+		coverer.setMinLevel(CELL_LEVEL);
+		coverer.setMaxLevel(CELL_LEVEL);
+		ArrayList<S2CellId> covering = new ArrayList<>();
+		coverer.getCovering(a, covering);
+		System.out.println(covering.size());
+		session.execute("use japan;");
+
+		// System.out.println(sft);
+		// SimpleFeatureBuilder builder = new SimpleFeatureBuilder(sft);
+		executorService = Executors.newFixedThreadPool(5);
+		ArrayList<SimpleFeature> features = new ArrayList<>();
+		Envelope bbox = new ReferencedEnvelope(lon0, lon1, lat0, lat1, DefaultGeographicCRS.WGS84);
+		for (S2CellId id : covering) {
+
+			Statement statement = new SimpleStatement(
+					"select * from japan.gis_osm_pois_free_1_2017120417 where block=?;", id.toToken());
+			executorService.submit(new QueryProcess(session, statement, null, bbox));
+		}
+
+		System.out.println(result.size());
 	}
 
 	class QueryProcess implements Runnable {
@@ -191,14 +265,8 @@ public class CassandraQueryManagement {
 			ResultSet rs = session.execute(statement);
 			for (Row row : rs) {
 				buffer = row.getBytes("the_geom");
-				String fid = row.getString("osm_id");
-				int partition = row.getInt("partition");
-				if (idset2.contains(fid))
-					continue;
-				if (partition > 1) {
-					idset2.add(fid);
-				}
-
+				String fid = row.getString("fid");
+				
 				try {
 					geometry = reader.read(buffer.array());
 					if (!bbox.intersects(geometry.getEnvelopeInternal())) {
@@ -207,15 +275,21 @@ public class CassandraQueryManagement {
 				} catch (Exception ex) {
 					ex.printStackTrace();
 				}
-
+				
 				builder.set("the_geom", geometry);
 				SimpleFeature feature = builder.buildFeature(fid);
+				feature.setDefaultGeometry(geometry);
+				if(feature.getDefaultGeometry()==null)
+					System.out.println("===========");
 				result.add(feature);
-				idset.add(fid);
 			}
 
 		}
 
+	}
+
+	public static void main(String[] args) {
+		new CassandraQueryManagement().queryData();
 	}
 
 }

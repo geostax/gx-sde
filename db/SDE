@@ -1,0 +1,13 @@
+CREATE TABLE sde_meta.layer(
+	id uuid,
+	cdate timestamp,
+	evenlope MAP<text, double>,
+	geometry_column text,
+	geometry_type text,
+	keywords LIST<text>,
+	ks text,
+	layer_name text,
+	layer_type text,
+	srid int,
+	PRIMARY KEY (id)
+)

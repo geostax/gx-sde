@@ -8,7 +8,6 @@ import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
-
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.geometry.S2Cell;
@@ -81,6 +80,53 @@ public class S2Index {
 		}
 		return covering;
 
+	}
+	
+	public List<S2CellId> indexMinLevel(int level, Geometry geom) {
+		ArrayList<S2CellId> covering = new ArrayList<>();
+		coverer.setMinLevel(level);
+		S2CellId id = null;
+		if (geom instanceof Point) {
+			Point point = (Point) geom;
+			double x = point.getX();
+			double y = point.getY();
+			id = new S2Cell(S2LatLng.fromDegrees(y, x)).id();
+			covering.add(id);
+		} else if (geom instanceof MultiLineString) {
+			List<S2Point> vertices = Lists.newArrayList();
+			Coordinate[] coordinates = geom.getCoordinates();
+			for (Coordinate coord : coordinates) {
+				vertices.add(S2LatLng.fromDegrees(coord.y, coord.x).toPoint());
+			}
+			S2Polyline line = new S2Polyline(vertices);
+			coverer.getCovering(line, covering);
+		} else if (geom instanceof MultiPolygon) {
+			MultiPolygon multip=(MultiPolygon)geom;
+			int count=multip.getNumGeometries();
+			for(int i=0;i<count;i++){
+				Geometry sub_geom=multip.getGeometryN(i);
+				Polygon p=(Polygon)sub_geom;
+				LineString ring=p.getExteriorRing();
+				Coordinate[] coordinates = ring.getCoordinates();
+				StringBuilder sb = new StringBuilder();
+				
+				for (Coordinate coord : coordinates) {
+					sb.append(coord.y + ":" + coord.x + ",");
+				}
+				sb.replace(sb.length() - 1, sb.length(), ";");
+				S2Polygon polygon = makePolygon(sb.toString());
+				ArrayList<S2CellId> covering2 = new ArrayList<>();
+				coverer.getCovering(polygon, covering2);
+				covering.addAll(covering2);
+			}
+			
+		}
+		return covering;
+	}
+	
+	public S2CellId index(double lat,double lng){
+		S2CellId id = new S2Cell(S2LatLng.fromDegrees(lat, lng)).id();
+		return id;
 	}
 
 	public static void main(String[] args) throws Exception {

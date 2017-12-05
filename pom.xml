@@ -219,5 +219,7 @@
 		<module>gx-sde-xml</module>
 		<module>gx-sde-elasticsearch</module>
 		<module>gx-sde-csv</module>
+		<module>gx-sde-imagepyramid</module>
+		<module>gx-sde-imagemosaic</module>
 	</modules>
 </project>

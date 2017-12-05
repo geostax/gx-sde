@@ -94,9 +94,9 @@ public class CassandraInsertFeatureWriter implements FeatureWriter<SimpleFeature
 			Geometry geom;
 			for (SimpleFeature feature : featurelist) {
 				// the datastore sets as userData, grab it and update the fid
-				if (sft.getGeometryDescriptor().getType().getName().toString().equals("MultiPolygon")) {
+				if (sft.getGeometryDescriptor().getType().getBinding().toString().equals("MultiPolygon")) {
 					geom = (MultiPolygon) feature.getDefaultGeometry();
-				} else if (sft.getGeometryDescriptor().getType().getName().toString().equals("MultiLineString")) {
+				} else if (sft.getGeometryDescriptor().getType().getBinding().toString().equals("MultiLineString")) {
 					geom = (MultiLineString) feature.getDefaultGeometry();
 				} else {
 					geom = (Point) feature.getDefaultGeometry();
